@@ -6,12 +6,12 @@ import { LoopOnce } from "three";
 
 export default function Newplayer({
   animation = "idle",
- 
+
   ...props
 }) {
   const group = useRef();
   const { scene, animations } = useGLTF("/newplayer.glb");
- const clone = useMemo(() => SkeletonUtils.clone(scene), [scene]);
+  const clone = useMemo(() => SkeletonUtils.clone(scene), [scene]);
   const { nodes, materials } = useGraph(clone);
   const { actions } = useAnimations(animations, group);
 

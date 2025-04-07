@@ -4,10 +4,12 @@ import Loading from "./loading";
 
 export default function Home() {
   return (
-    <Suspense fallback={<Loading />}>
-      <div className="h-screen w-full bg-black fixed">
-        <Experience />
-      </div>
-    </Suspense>
+    <>
+      <Suspense fallback={<Loading />}>
+        <div className="h-screen w-full bg-black fixed">
+          <Experience />
+        </div>
+      </Suspense>
+    </>
   );
 }

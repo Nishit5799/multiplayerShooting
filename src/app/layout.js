@@ -13,7 +13,7 @@ const geistMono = localFont({
 });
 
 export const metadata = {
-  title: "FREE ROAM",
+  title: "KILL AND WIN",
   description:
     "Game is still not complete but you can roam anywhere just as you wish",
 };
