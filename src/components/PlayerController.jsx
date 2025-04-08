@@ -7,13 +7,13 @@ import Newplayer from "./Newplayer";
 import Crosshair from "./Crosshair";
 import PlayerInfo from "./PlayerInfo";
 
-const RUN_SPEED = 4;
+const RUN_SPEED = 4.2;
 const FIRE_RATE = 280;
 const CAMERA_FOLLOW_DISTANCE = 5;
 const CAMERA_HEIGHT = 3;
-const ROTATION_SPEED = 0.1;
+const ROTATION_SPEED = 0.04;
 const MOVEMENT_DAMPING = 0.9;
-const BULLET_SPAWN_OFFSET = 1.2;
+
 const VERTICAL_AIM_LIMIT = Math.PI / 4; // 45 degrees up/down
 
 const normalizeAngle = (angle) => {
@@ -49,6 +49,7 @@ const PlayerController = ({
   userPlayer,
   onFire,
   onKilled,
+  downgradedPerformance,
   ...props
 }) => {
   const group = useRef();
@@ -58,13 +59,22 @@ const PlayerController = ({
   const { camera } = useThree();
 
   const [animation, setAnimation] = useState("idle");
-  const [targetRotation, setTargetRotation] = useState(0);
+  const [targetRotation, setTargetRotation] = useState(Math.PI); // Start facing backward
   const [verticalAngle, setVerticalAngle] = useState(0);
 
   const cameraPosition = useMemo(() => new THREE.Vector3(), []);
   const cameraLookAt = useMemo(() => new THREE.Vector3(), []);
+  const moveDirection = useMemo(() => new THREE.Vector3(), []);
 
   const scene = useThree((state) => state.scene);
+
+  const directionalLight = useRef();
+
+  useEffect(() => {
+    if (character.current && userPlayer) {
+      directionalLight.current.target = character.current;
+    }
+  }, [character.current]);
 
   const spawnRandomly = () => {
     const spawns = [];
@@ -86,39 +96,58 @@ const PlayerController = ({
     }
   }, []);
 
+  useEffect(() => {
+    if (state.state.dead) {
+      const audio = new Audio("/audios/dead.mp3");
+      audio.volume = 0.5;
+      audio.play();
+    }
+  }, [state.state.dead]);
+
+  useEffect(() => {
+    if (state.state.health < 100) {
+      const audio = new Audio("/audios/hurt.mp3");
+      audio.volume = 0.4;
+      audio.play();
+    }
+  }, [state.state.health]);
+
   useFrame((_, delta) => {
     if (!rigidbody.current || !character.current) return;
 
     if (state.state.dead) {
-      setAnimation["death"];
+      setAnimation("death");
       return;
     }
-    // Handle horizontal movement and rotation
-    const angle = joystick.angle();
-    const isPressed = joystick.isJoystickPressed();
+
+    // Handle movement
     let velocity = { ...rigidbody.current.linvel() };
+    const isPressed = joystick.isJoystickPressed();
+    const angle = joystick.angle();
 
     if (isPressed && angle !== null) {
-      const movement = {
-        x: Math.sin(angle),
-        z: Math.cos(angle),
-      };
+      // Calculate movement direction relative to character's current rotation
+      const moveAngle = angle + character.current.rotation.y;
+      moveDirection.set(-Math.sin(moveAngle), 0, -Math.cos(moveAngle));
 
-      const newTargetRotation = Math.atan2(movement.x, movement.z);
+      // Calculate target rotation based on movement direction
+      const newTargetRotation = Math.atan2(moveDirection.x, moveDirection.z);
       setTargetRotation(newTargetRotation);
 
+      // Smoothly rotate character towards movement direction
       character.current.rotation.y = lerpAngle(
         character.current.rotation.y,
         targetRotation,
         ROTATION_SPEED
       );
 
-      const speed = RUN_SPEED;
-      velocity.x = movement.x * speed;
-      velocity.z = movement.z * speed;
+      // Apply movement
+      velocity.x = moveDirection.x * RUN_SPEED;
+      velocity.z = moveDirection.z * RUN_SPEED;
 
       setAnimation("running");
     } else {
+      // Apply damping when not moving
       velocity.x *= MOVEMENT_DAMPING;
       velocity.z *= MOVEMENT_DAMPING;
       setAnimation("idle");
@@ -138,6 +167,7 @@ const PlayerController = ({
 
     rigidbody.current.setLinvel(velocity, true);
 
+    // Network synchronization
     if (isHost()) {
       state.setState("pos", rigidbody.current.translation());
     } else {
@@ -147,6 +177,7 @@ const PlayerController = ({
       }
     }
 
+    // Camera follow for user player
     if (userPlayer) {
       const playerPosition = vec3(rigidbody.current.translation());
       const cameraOffset = new THREE.Vector3(
@@ -174,6 +205,7 @@ const PlayerController = ({
       camera.lookAt(cameraLookAt);
     }
 
+    // Shooting logic
     if (joystick.isPressed("fire")) {
       setAnimation("shooting");
       if (isHost()) {
@@ -268,6 +300,23 @@ const PlayerController = ({
             <Crosshair
               position={[WEAPON_OFFSET.x, WEAPON_OFFSET.y, WEAPON_OFFSET.z]}
               verticalAngle={verticalAngle}
+            />
+          )}
+          {userPlayer && (
+            <directionalLight
+              ref={directionalLight}
+              position={[25, 18, -25]}
+              intensity={0.3}
+              castShadow={!downgradedPerformance}
+              shadow-camera-near={0}
+              shadow-camera-far={100}
+              shadow-camera-left={-20}
+              shadow-camera-right={20}
+              shadow-camera-top={20}
+              shadow-camera-bottom={-20}
+              shadow-mapSize-width={2048}
+              shadow-mapSize-height={2048}
+              shadow-bias={-0.0001}
             />
           )}
         </group>

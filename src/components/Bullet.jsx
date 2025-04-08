@@ -39,6 +39,8 @@ const Bullet = ({
   }, [direction, angle]);
 
   useEffect(() => {
+    const audio = new Audio("/audios/rifle.mp3");
+    audio.play();
     if (direction) {
       // Set physics velocity
       const velocity = {
@@ -56,8 +58,6 @@ const Bullet = ({
         z: Math.cos(angle) * horizontalSpeed,
       };
       rigidbody.current.setLinvel(velocity, true);
-
-      const audio = new Audio("/audios/rifle.mp3");
     }
   }, [angle, angleY, direction]);
 

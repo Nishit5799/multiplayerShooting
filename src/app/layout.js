@@ -13,9 +13,12 @@ const geistMono = localFont({
 });
 
 export const metadata = {
-  title: "KILL AND WIN",
+  title: "MOBILE DEATHMATCH",
   description:
-    "Game is still not complete but you can roam anywhere just as you wish",
+    "Currently, this game is best suited for mobile users, as keyboard functionality has not yet been implemented. Desktop users may experience limited controls, but an update with full compatibility is coming soon. Stay tuned for an enhanced gaming experience across all devices!",
+  icons: {
+    icon: "/fav.png", // Path to your favicon in the public folder
+  },
 };
 
 export default function RootLayout({ children }) {

@@ -4,7 +4,7 @@ import { Canvas } from "@react-three/fiber";
 import {
   Environment,
   KeyboardControls,
-  Loader,
+  PerformanceMonitor,
   SoftShadows,
 } from "@react-three/drei";
 
@@ -24,6 +24,7 @@ import { Map } from "./Map";
 import Bullet from "./Bullet";
 import { Bloom, EffectComposer } from "@react-three/postprocessing";
 import Leaderboard from "./Leaderboard";
+import BulletHit from "./BulletHit";
 
 const keyboardMap = [
   {
@@ -55,22 +56,34 @@ const keyboardMap = [
 const Experience = () => {
   const [players, setPlayers] = useState([]);
   const [bullets, setBullets] = useState([]);
+
+  const [downgradedPerformance, setDowngradedPerformance] = useState(false);
   const [networkbullets, setNetworkBullets] = useMultiplayerState(
     "bullets",
     []
   );
+  const [hits, setHits] = useState([]);
+  const [networkHits, setNetworkHits] = useMultiplayerState("hits", []);
 
   const onFire = (bullet) => {
     setBullets((bullets) => [...bullets, bullet]);
   };
 
-  const onHit = (bulletId) => {
+  const onHit = (bulletId, position) => {
     setBullets((bullets) => bullets.filter((b) => b.id !== bulletId));
+    setHits((hits) => [...hits, { id: bulletId, position }]);
+  };
+
+  const onHitEnded = (hitId) => {
+    setHits((hits) => hits.filter((h) => h.id !== hitId));
   };
 
   useEffect(() => {
     setNetworkBullets(bullets);
   }, [bullets]);
+  useEffect(() => {
+    setNetworkHits(hits);
+  }, [hits]);
   const start = async () => {
     await insertCoin();
 
@@ -98,12 +111,29 @@ const Experience = () => {
     const killerState = players.find((p) => p.state.id === killer).state;
     killerState.setState("kills", killerState.state.kills + 1);
   };
+
+  const handleExit = () => {
+    window.location.reload();
+  };
+
   return (
     <KeyboardControls map={keyboardMap}>
       <>
-        <Loader />
+        <div className="absolute sm:top-[2%] sm:left-[50%] top-[15%] left-[20%] -translate-x-1/2 z-[1000]">
+          <button
+            onClick={handleExit}
+            className="px-5 py-2.5 bg-[#ff3333] text-white border-none rounded-md cursor-pointer text-base font-bold shadow-md"
+          >
+            Exit Game
+          </button>
+        </div>
         <Leaderboard />
         <Canvas camera={{ position: [0, 4, 4], fov: 60, near: 2 }} shadows>
+          <PerformanceMonitor
+            onDecline={(fps) => {
+              setDowngradedPerformance(true);
+            }}
+          />
           <Environment preset="sunset" />
           <SoftShadows size={42} />
           <Physics>
@@ -115,21 +145,26 @@ const Experience = () => {
                 userPlayer={state.id === myPlayer()?.id}
                 onFire={onFire}
                 onKilled={onKilled}
+                downgradedPerformance={downgradedPerformance}
               />
             ))}
             {(isHost() ? bullets : networkbullets).map((bullet) => (
               <Bullet
                 key={bullet.id}
                 {...bullet}
-                onHit={() => onHit(bullet.id)}
+                onHit={(position) => onHit(bullet.id, position)}
               />
             ))}
+            {(isHost() ? hits : networkHits).map((hit) => (
+              <BulletHit
+                key={hit.id}
+                {...hit}
+                onEnded={() => onHitEnded(hit.id)}
+              />
+            ))}
+
             <Map />
           </Physics>
-
-          <EffectComposer disableNormalPass>
-            <Bloom luminanceThreshold={1} intensity={1.5} mipmapBlur />
-          </EffectComposer>
         </Canvas>
       </>
     </KeyboardControls>
