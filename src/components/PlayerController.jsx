@@ -7,13 +7,13 @@ import Newplayer from "./Newplayer";
 import Crosshair from "./Crosshair";
 import PlayerInfo from "./PlayerInfo";
 
-const RUN_SPEED = 4.2;
+const RUN_SPEED = 4;
 const FIRE_RATE = 280;
 const CAMERA_FOLLOW_DISTANCE = 5;
 const CAMERA_HEIGHT = 3;
-const ROTATION_SPEED = 0.04;
+const ROTATION_SPEED = 0.1;
 const MOVEMENT_DAMPING = 0.9;
-
+const BULLET_SPAWN_OFFSET = 1.2;
 const VERTICAL_AIM_LIMIT = Math.PI / 4; // 45 degrees up/down
 
 const normalizeAngle = (angle) => {
@@ -59,12 +59,11 @@ const PlayerController = ({
   const { camera } = useThree();
 
   const [animation, setAnimation] = useState("idle");
-  const [targetRotation, setTargetRotation] = useState(Math.PI); // Start facing backward
+  const [targetRotation, setTargetRotation] = useState(0);
   const [verticalAngle, setVerticalAngle] = useState(0);
 
   const cameraPosition = useMemo(() => new THREE.Vector3(), []);
   const cameraLookAt = useMemo(() => new THREE.Vector3(), []);
-  const moveDirection = useMemo(() => new THREE.Vector3(), []);
 
   const scene = useThree((state) => state.scene);
 
@@ -119,35 +118,32 @@ const PlayerController = ({
       setAnimation("death");
       return;
     }
-
-    // Handle movement
-    let velocity = { ...rigidbody.current.linvel() };
-    const isPressed = joystick.isJoystickPressed();
+    // Handle horizontal movement and rotation
     const angle = joystick.angle();
+    const isPressed = joystick.isJoystickPressed();
+    let velocity = { ...rigidbody.current.linvel() };
 
     if (isPressed && angle !== null) {
-      // Calculate movement direction relative to character's current rotation
-      const moveAngle = angle + character.current.rotation.y;
-      moveDirection.set(-Math.sin(moveAngle), 0, -Math.cos(moveAngle));
+      const movement = {
+        x: Math.sin(angle),
+        z: Math.cos(angle),
+      };
 
-      // Calculate target rotation based on movement direction
-      const newTargetRotation = Math.atan2(moveDirection.x, moveDirection.z);
+      const newTargetRotation = Math.atan2(movement.x, movement.z);
       setTargetRotation(newTargetRotation);
 
-      // Smoothly rotate character towards movement direction
       character.current.rotation.y = lerpAngle(
         character.current.rotation.y,
         targetRotation,
         ROTATION_SPEED
       );
 
-      // Apply movement
-      velocity.x = moveDirection.x * RUN_SPEED;
-      velocity.z = moveDirection.z * RUN_SPEED;
+      const speed = RUN_SPEED;
+      velocity.x = movement.x * speed;
+      velocity.z = movement.z * speed;
 
       setAnimation("running");
     } else {
-      // Apply damping when not moving
       velocity.x *= MOVEMENT_DAMPING;
       velocity.z *= MOVEMENT_DAMPING;
       setAnimation("idle");
@@ -167,7 +163,6 @@ const PlayerController = ({
 
     rigidbody.current.setLinvel(velocity, true);
 
-    // Network synchronization
     if (isHost()) {
       state.setState("pos", rigidbody.current.translation());
     } else {
@@ -177,7 +172,6 @@ const PlayerController = ({
       }
     }
 
-    // Camera follow for user player
     if (userPlayer) {
       const playerPosition = vec3(rigidbody.current.translation());
       const cameraOffset = new THREE.Vector3(
@@ -205,7 +199,6 @@ const PlayerController = ({
       camera.lookAt(cameraLookAt);
     }
 
-    // Shooting logic
     if (joystick.isPressed("fire")) {
       setAnimation("shooting");
       if (isHost()) {
@@ -303,11 +296,14 @@ const PlayerController = ({
             />
           )}
           {userPlayer && (
+            // Finally I moved the light to follow the player
+            // This way we won't need to calculate ALL the shadows but only the ones
+            // that are in the camera view
             <directionalLight
               ref={directionalLight}
               position={[25, 18, -25]}
               intensity={0.3}
-              castShadow={!downgradedPerformance}
+              castShadow={!downgradedPerformance} // Disable shadows on low-end devices
               shadow-camera-near={0}
               shadow-camera-far={100}
               shadow-camera-left={-20}

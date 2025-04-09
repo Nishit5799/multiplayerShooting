@@ -55,7 +55,6 @@ const keyboardMap = [
 const Experience = () => {
   const [players, setPlayers] = useState([]);
   const [bullets, setBullets] = useState([]);
-
   const [downgradedPerformance, setDowngradedPerformance] = useState(false);
   const [networkbullets, setNetworkBullets] = useMultiplayerState(
     "bullets",
@@ -134,6 +133,13 @@ const Experience = () => {
             ))}
             <Map />
           </Physics>
+
+          {!downgradedPerformance && (
+            // disable the postprocessing on low-end devices
+            <EffectComposer disableNormalPass>
+              <Bloom luminanceThreshold={1} intensity={1.5} mipmapBlur />
+            </EffectComposer>
+          )}
         </Canvas>
       </>
     </KeyboardControls>
