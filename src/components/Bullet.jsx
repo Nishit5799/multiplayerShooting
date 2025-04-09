@@ -10,6 +10,14 @@ const bulletMaterial = new MeshBasicMaterial({
 });
 bulletMaterial.color.multiplyScalar(42);
 
+// Preload audio
+const rifleAudio =
+  typeof Audio !== "undefined" ? new Audio("/audios/rifle.mp3") : null;
+if (rifleAudio) {
+  rifleAudio.preload = "auto";
+  rifleAudio.load();
+}
+
 const Bullet = ({
   player,
   angle,
@@ -39,8 +47,34 @@ const Bullet = ({
   }, [direction, angle]);
 
   useEffect(() => {
-    const audio = new Audio("/audios/rifle.mp3");
-    audio.play();
+    if (rifleAudio) {
+      try {
+        // Create a new audio context if needed
+        if (rifleAudio.context === undefined && typeof window !== "undefined") {
+          rifleAudio.context = new (window.AudioContext ||
+            window.webkitAudioContext)();
+        }
+
+        // Reset audio and play
+        rifleAudio.currentTime = 0;
+        const playPromise = rifleAudio.play();
+
+        if (playPromise !== undefined) {
+          playPromise.catch((error) => {
+            console.log("Audio play failed, trying to resume context:", error);
+            if (
+              rifleAudio.context &&
+              rifleAudio.context.state === "suspended"
+            ) {
+              rifleAudio.context.resume().then(() => rifleAudio.play());
+            }
+          });
+        }
+      } catch (error) {
+        console.error("Audio playback error:", error);
+      }
+    }
+
     if (direction) {
       // Set physics velocity
       const velocity = {

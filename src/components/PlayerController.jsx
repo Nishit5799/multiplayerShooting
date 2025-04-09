@@ -13,8 +13,26 @@ const CAMERA_FOLLOW_DISTANCE = 5;
 const CAMERA_HEIGHT = 3;
 const ROTATION_SPEED = 0.1;
 const MOVEMENT_DAMPING = 0.9;
-const BULLET_SPAWN_OFFSET = 1.2;
+
 const VERTICAL_AIM_LIMIT = Math.PI / 4; // 45 degrees up/down
+
+// Preload audio files
+const hurtAudio =
+  typeof Audio !== "undefined" ? new Audio("/audios/hurt.mp3") : null;
+const deadAudio =
+  typeof Audio !== "undefined" ? new Audio("/audios/dead.mp3") : null;
+
+if (hurtAudio) {
+  hurtAudio.preload = "auto";
+  hurtAudio.volume = 0.4;
+  hurtAudio.load();
+}
+
+if (deadAudio) {
+  deadAudio.preload = "auto";
+  deadAudio.volume = 0.5;
+  deadAudio.load();
+}
 
 const normalizeAngle = (angle) => {
   while (angle > Math.PI) angle -= 2 * Math.PI;
@@ -95,19 +113,42 @@ const PlayerController = ({
     }
   }, []);
 
+  const playAudio = (audio) => {
+    if (!audio) return;
+
+    try {
+      // Create a new audio context if needed
+      if (audio.context === undefined && typeof window !== "undefined") {
+        audio.context = new (window.AudioContext ||
+          window.webkitAudioContext)();
+      }
+
+      // Reset audio and play
+      audio.currentTime = 0;
+      const playPromise = audio.play();
+
+      if (playPromise !== undefined) {
+        playPromise.catch((error) => {
+          console.log("Audio play failed, trying to resume context:", error);
+          if (audio.context && audio.context.state === "suspended") {
+            audio.context.resume().then(() => audio.play());
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Audio playback error:", error);
+    }
+  };
+
   useEffect(() => {
     if (state.state.dead) {
-      const audio = new Audio("/audios/dead.mp3");
-      audio.volume = 0.5;
-      audio.play();
+      playAudio(deadAudio);
     }
   }, [state.state.dead]);
 
   useEffect(() => {
     if (state.state.health < 100) {
-      const audio = new Audio("/audios/hurt.mp3");
-      audio.volume = 0.4;
-      audio.play();
+      playAudio(hurtAudio);
     }
   }, [state.state.health]);
 
@@ -296,14 +337,11 @@ const PlayerController = ({
             />
           )}
           {userPlayer && (
-            // Finally I moved the light to follow the player
-            // This way we won't need to calculate ALL the shadows but only the ones
-            // that are in the camera view
             <directionalLight
               ref={directionalLight}
               position={[25, 18, -25]}
               intensity={0.3}
-              castShadow={!downgradedPerformance} // Disable shadows on low-end devices
+              castShadow={!downgradedPerformance}
               shadow-camera-near={0}
               shadow-camera-far={100}
               shadow-camera-left={-20}
