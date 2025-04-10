@@ -65,7 +65,7 @@ const Experience = () => {
   const [networkHits, setNetworkHits] = useMultiplayerState("hits", []);
 
   const handleExit = () => {
-    window.location.reload();
+    window.location.href = "https://multiplayer-shooting-ktpk.vercel.app/";
   };
 
   const onFire = (bullet) => {
@@ -117,7 +117,7 @@ const Experience = () => {
     <KeyboardControls map={keyboardMap}>
       <>
         <div className="fixed top-5 right-5 z-[1000]">
-          <button 
+          <button
             onClick={handleExit}
             className="
               px-5 py-2.5
