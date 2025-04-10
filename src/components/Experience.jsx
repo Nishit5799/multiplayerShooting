@@ -64,10 +64,6 @@ const Experience = () => {
   const [hits, setHits] = useState([]);
   const [networkHits, setNetworkHits] = useMultiplayerState("hits", []);
 
-  const handleExit = () => {
-    window.location.reload();
-  };
-
   const onFire = (bullet) => {
     setBullets((bullets) => [...bullets, bullet]);
   };
@@ -116,28 +112,10 @@ const Experience = () => {
   return (
     <KeyboardControls map={keyboardMap}>
       <>
-        <div className="fixed top-5 right-5 z-[1000]">
-          <button 
-            onClick={handleExit}
-            className="
-              px-5 py-2.5
-              bg-red-500 hover:bg-red-600
-              text-white font-bold
-              border-none rounded-md
-              cursor-pointer
-              shadow-md
-              transition-all duration-300 ease-in-out
-              hover:scale-105
-              md:px-4 md:py-2 md:text-base
-              text-sm
-            "
-          >
-            Exit
-          </button>
-        </div>
         <Leaderboard />
         <Canvas camera={{ position: [0, 4, 4], fov: 60, near: 2 }} shadows>
           <PerformanceMonitor
+            // Detect low performance devices
             onDecline={(fps) => {
               setDowngradedPerformance(true);
             }}
