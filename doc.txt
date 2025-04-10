@@ -466,3 +466,48 @@ const Experience = () => {
 };
 
 export default Experience;
+
+
+//effect in experience just above </canvas>
+ {!downgradedPerformance && (
+            // disable the postprocessing on low-end devices
+            <EffectComposer disableNormalPass>
+              <Bloom luminanceThreshold={1} intensity={1.5} mipmapBlur />
+            </EffectComposer>
+          )}
+
+
+-//
+
+//in playercontroller just before 
+ </group>
+<CapsuleCollider args={[0.3, 0.64]} position={[0, 1, 0]} />
+
+  {userPlayer && (
+            <directionalLight
+              ref={directionalLight}
+              position={[25, 18, -25]}
+              intensity={0.3}
+              castShadow={!downgradedPerformance}
+              shadow-camera-near={0}
+              shadow-camera-far={100}
+              shadow-camera-left={-20}
+              shadow-camera-right={20}
+              shadow-camera-top={20}
+              shadow-camera-bottom={-20}
+              shadow-mapSize-width={2048}
+              shadow-mapSize-height={2048}
+              shadow-bias={-0.0001}
+            />
+          )}
+
+          and also, add
+            const directionalLight = useRef();
+
+  useEffect(() => {
+    if (character.current && userPlayer) {
+      directionalLight.current.target = character.current;
+    }
+  }, [character.current]);
+
+          -//

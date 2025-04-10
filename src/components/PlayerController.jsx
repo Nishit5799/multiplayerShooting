@@ -9,10 +9,11 @@ import PlayerInfo from "./PlayerInfo";
 
 const RUN_SPEED = 4;
 const FIRE_RATE = 280;
-const CAMERA_FOLLOW_DISTANCE = 5;
-const CAMERA_HEIGHT = 3;
-const ROTATION_SPEED = 0.1;
+const CAMERA_FOLLOW_DISTANCE = 4.5;
+const CAMERA_HEIGHT = 9;
+const ROTATION_SPEED = 0.05;
 const MOVEMENT_DAMPING = 0.9;
+const NETWORK_LERP_FACTOR = 0.2; // Smoothing factor for non-host players
 
 const VERTICAL_AIM_LIMIT = Math.PI / 4; // 45 degrees up/down
 
@@ -58,7 +59,7 @@ const lerpAngle = (start, end, t) => {
 export const WEAPON_OFFSET = {
   x: -0.1,
   y: 1,
-  z: 0.8,
+  z: 1.5,
 };
 
 const PlayerController = ({
@@ -85,14 +86,6 @@ const PlayerController = ({
 
   const scene = useThree((state) => state.scene);
 
-  const directionalLight = useRef();
-
-  useEffect(() => {
-    if (character.current && userPlayer) {
-      directionalLight.current.target = character.current;
-    }
-  }, [character.current]);
-
   const spawnRandomly = () => {
     const spawns = [];
     for (let i = 0; i < 1000; i++) {
@@ -117,13 +110,11 @@ const PlayerController = ({
     if (!audio) return;
 
     try {
-      // Create a new audio context if needed
       if (audio.context === undefined && typeof window !== "undefined") {
         audio.context = new (window.AudioContext ||
           window.webkitAudioContext)();
       }
 
-      // Reset audio and play
       audio.currentTime = 0;
       const playPromise = audio.play();
 
@@ -159,15 +150,19 @@ const PlayerController = ({
       setAnimation("death");
       return;
     }
+
     // Handle horizontal movement and rotation
     const angle = joystick.angle();
     const isPressed = joystick.isJoystickPressed();
     let velocity = { ...rigidbody.current.linvel() };
 
     if (isPressed && angle !== null) {
+      const characterAngle = character.current.rotation.y;
+      const relativeAngle = angle + characterAngle;
+
       const movement = {
-        x: Math.sin(angle),
-        z: Math.cos(angle),
+        x: -Math.sin(relativeAngle),
+        z: -Math.cos(relativeAngle),
       };
 
       const newTargetRotation = Math.atan2(movement.x, movement.z);
@@ -175,7 +170,7 @@ const PlayerController = ({
 
       character.current.rotation.y = lerpAngle(
         character.current.rotation.y,
-        targetRotation,
+        newTargetRotation,
         ROTATION_SPEED
       );
 
@@ -190,6 +185,34 @@ const PlayerController = ({
       setAnimation("idle");
     }
 
+    // Apply movement for all players
+    rigidbody.current.setLinvel(velocity, true);
+
+    // Network synchronization
+    if (isHost()) {
+      state.setState("pos", rigidbody.current.translation());
+      state.setState("rotation", character.current.rotation.y);
+      state.setState("animation", animation);
+    } else {
+      const pos = state.getState("pos");
+      const rotation = state.getState("rotation");
+      const networkAnimation = state.getState("animation");
+
+      if (pos) {
+        const currentPos = vec3(rigidbody.current.translation());
+        const newPos = currentPos.lerp(pos, NETWORK_LERP_FACTOR);
+        rigidbody.current.setTranslation(newPos);
+      }
+
+      if (rotation !== undefined) {
+        character.current.rotation.y = rotation;
+      }
+
+      if (networkAnimation) {
+        setAnimation(networkAnimation);
+      }
+    }
+
     // Handle vertical aiming
     if (joystick.isPressed("up")) {
       setVerticalAngle((prev) =>
@@ -200,17 +223,6 @@ const PlayerController = ({
       setVerticalAngle((prev) =>
         Math.min(prev + delta * 2, VERTICAL_AIM_LIMIT)
       );
-    }
-
-    rigidbody.current.setLinvel(velocity, true);
-
-    if (isHost()) {
-      state.setState("pos", rigidbody.current.translation());
-    } else {
-      const pos = state.getState("pos");
-      if (pos) {
-        rigidbody.current.setTranslation(pos);
-      }
     }
 
     if (userPlayer) {
@@ -247,14 +259,12 @@ const PlayerController = ({
           lastShoot.current = Date.now();
           const playerPos = vec3(rigidbody.current.translation());
 
-          // Calculate bullet position with vertical offset
           const crosshairOffset = new THREE.Vector3(
             WEAPON_OFFSET.x,
             WEAPON_OFFSET.y + Math.sin(verticalAngle) * 0.5,
             WEAPON_OFFSET.z
           );
 
-          // Apply player's rotation to the offset
           const worldOffset = crosshairOffset
             .clone()
             .applyQuaternion(character.current.quaternion);
@@ -265,7 +275,6 @@ const PlayerController = ({
             z: playerPos.z + worldOffset.z,
           };
 
-          // Calculate bullet direction with vertical angle
           const bulletDirection = new THREE.Vector3(
             0,
             Math.sin(verticalAngle),
@@ -300,7 +309,7 @@ const PlayerController = ({
         colliders={false}
         lockRotations
         gravityScale={9.8}
-        type={isHost() ? "dynamic" : "kinematicPosition"}
+        type="dynamic" // All players use dynamic physics
         onIntersectionEnter={({ other }) => {
           if (
             isHost() &&
@@ -328,29 +337,12 @@ const PlayerController = ({
         }}
       >
         <PlayerInfo state={state.state} />
-        <group ref={character}>
+        <group ref={character} rotation={[0, Math.PI, 0]}>
           <Newplayer animation={animation} />
           {userPlayer && (
             <Crosshair
               position={[WEAPON_OFFSET.x, WEAPON_OFFSET.y, WEAPON_OFFSET.z]}
               verticalAngle={verticalAngle}
-            />
-          )}
-          {userPlayer && (
-            <directionalLight
-              ref={directionalLight}
-              position={[25, 18, -25]}
-              intensity={0.3}
-              castShadow={!downgradedPerformance}
-              shadow-camera-near={0}
-              shadow-camera-far={100}
-              shadow-camera-left={-20}
-              shadow-camera-right={20}
-              shadow-camera-top={20}
-              shadow-camera-bottom={-20}
-              shadow-mapSize-width={2048}
-              shadow-mapSize-height={2048}
-              shadow-bias={-0.0001}
             />
           )}
         </group>

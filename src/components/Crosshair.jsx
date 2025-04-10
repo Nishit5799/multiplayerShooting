@@ -4,12 +4,11 @@ import * as THREE from "three";
 const Crosshair = ({ verticalAngle = 0, ...props }) => {
   // Apply vertical angle to crosshair position
   const crosshairPositions = [
-    { z: 1, opacity: 0.9 },
-    { z: 2, opacity: 0.85 },
-    { z: 3, opacity: 0.8 },
-    { z: 4, opacity: 0.7 },
-    { z: 5, opacity: 0.6 },
-    { z: 6, opacity: 0.2 },
+    { z: -1, opacity: 0.9 },
+    { z: 0, opacity: 0.85 },
+    { z: 1, opacity: 0.8 },
+    { z: 2, opacity: 0.5 },
+    { z: 3, opacity: 0.3 },
   ];
 
   return (

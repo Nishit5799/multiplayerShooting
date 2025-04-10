@@ -27,7 +27,7 @@ export default function Newplayer({
   }, [animation, actions]);
   return (
     <group ref={group} {...props} dispose={null}>
-      <group name="Scene">
+      <group name="Scene" >
         <group name="Armature">
           <primitive object={nodes.mixamorigHips} />
           <primitive object={nodes.Ctrl_Master} />

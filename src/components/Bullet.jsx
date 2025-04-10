@@ -3,9 +3,9 @@ import { isHost } from "playroomkit";
 import React, { useEffect, useRef, useMemo } from "react";
 import { MeshBasicMaterial, Quaternion, Vector3 } from "three";
 
-const BULLET_SPEED = 20;
+const BULLET_SPEED = 15;
 const bulletMaterial = new MeshBasicMaterial({
-  color: "hotpink",
+  color: "white",
   toneMapped: false,
 });
 bulletMaterial.color.multiplyScalar(42);
@@ -21,7 +21,7 @@ if (rifleAudio) {
 const Bullet = ({
   player,
   angle,
-  angleY = 0.5,
+  angleY = 0.4,
   position,
   direction,
   onHit,
