@@ -122,7 +122,7 @@ const Experience = () => {
         <div className="fixed top-[-20%] inset-0 flex items-center justify-center z-50 bg-black bg-opacity-70">
           <div className="bg-white p-5 rounded-lg text-center max-w-md w-full mx-4">
             <h2 className="text-3xl font-bold mb-4">How to Play</h2>
-            <div className="text-left space-y-4 mb-6">
+            <div className="text-left space-y-4 mb-3">
               <p className="text-center">
                 <strong>You can play in both Portrait and Landscape.</strong>
               </p>
@@ -137,14 +137,9 @@ const Experience = () => {
                 their health to zero. The first player to reach 5 kills wins the
                 match.
               </p>
-              <p>
-                <strong>Health System:</strong> Players automatically regenerate
-                health when not taking damage for few seconds
-              </p>
+
               <p className="text-sm text-gray-600 mt-4">
-                Pro Tip: Move strategically, use cover, and time your attacks
-                when opponents are vulnerable to prevent their health
-                regeneration!
+                Tip: Move strategically and use the environment for cover!
               </p>
             </div>
             <button
