@@ -7,15 +7,15 @@ import Newplayer from "./Newplayer";
 import Crosshair from "./Crosshair";
 import PlayerInfo from "./PlayerInfo";
 
-const RUN_SPEED = 4;
+const RUN_SPEED = 5;
 const FIRE_RATE = 280;
 const CAMERA_FOLLOW_DISTANCE = 4.5;
-const CAMERA_HEIGHT = 9;
-const ROTATION_SPEED = 0.05;
+const CAMERA_HEIGHT = 3;
+const ROTATION_SPEED = 0.04;
 const MOVEMENT_DAMPING = 0.9;
-const NETWORK_LERP_FACTOR = 0.2; // Smoothing factor for non-host players
+const NETWORK_LERP_FACTOR = 0.2;
 
-const VERTICAL_AIM_LIMIT = Math.PI / 4; // 45 degrees up/down
+const VERTICAL_AIM_LIMIT = Math.PI / 4;
 
 // Preload audio files
 const hurtAudio =
@@ -142,6 +142,12 @@ const PlayerController = ({
       playAudio(hurtAudio);
     }
   }, [state.state.health]);
+
+  const handleHealthUpdate = (newHealth) => {
+    if (isHost()) {
+      state.setState("health", newHealth);
+    }
+  };
 
   useFrame((_, delta) => {
     if (!rigidbody.current || !character.current) return;
@@ -309,7 +315,7 @@ const PlayerController = ({
         colliders={false}
         lockRotations
         gravityScale={9.8}
-        type="dynamic" // All players use dynamic physics
+        type="dynamic"
         onIntersectionEnter={({ other }) => {
           if (
             isHost() &&
@@ -336,7 +342,7 @@ const PlayerController = ({
           }
         }}
       >
-        <PlayerInfo state={state.state} />
+        <PlayerInfo state={state.state} onHealthUpdate={handleHealthUpdate} />
         <group ref={character} rotation={[0, Math.PI, 0]}>
           <Newplayer animation={animation} />
           {userPlayer && (

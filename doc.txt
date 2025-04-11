@@ -511,3 +511,7 @@ export default Experience;
   }, [character.current]);
 
           -//
+
+
+
+ "@react-three/postprocessing": "^2.4.1",
