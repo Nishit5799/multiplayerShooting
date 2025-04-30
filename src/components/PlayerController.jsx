@@ -7,11 +7,11 @@ import Newplayer from "./Newplayer";
 import Crosshair from "./Crosshair";
 import PlayerInfo from "./PlayerInfo";
 
-const RUN_SPEED = 5;
+const RUN_SPEED = 3.4;
 const FIRE_RATE = 280;
 const CAMERA_FOLLOW_DISTANCE = 4.5;
 const CAMERA_HEIGHT = 3;
-const ROTATION_SPEED = 0.04;
+const ROTATION_SPEED = 0.025;
 const MOVEMENT_DAMPING = 0.9;
 const NETWORK_LERP_FACTOR = 0.2;
 
